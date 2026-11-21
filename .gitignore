@@ -1,0 +1,22 @@
+# Python / Virtualenv
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*$py.class
+
+# PyInstaller build artifacts
+build/
+build_staging/
+dist/
+*.spec
+
+# Runtime outputs and temp files
+outputs/
+temp/
+
+# OS / Editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

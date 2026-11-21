@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>YT / Bilibili → GIF Studio｜影片片段轉 GIF 製作工具</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&family=Noto+Sans+TC:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <div class="bg-glow"></div>
+
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-icon" aria-hidden="true">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+            <rect x="2" y="4" width="20" height="16" rx="4" stroke="currentColor" stroke-width="2" />
+            <path d="M10 9.2L15.2 12L10 14.8V9.2Z" fill="currentColor" />
+          </svg>
+        </div>
+        <div>
+          <h1>YT / Bilibili → GIF Studio</h1>
+          <p class="subtitle">貼上 YouTube 或 Bilibili 網址、標明時間軸，快速產出高畫質可下載 GIF</p>
+        </div>
+      </div>
+      <div class="topbar-badge">
+        <span class="dot"></span>
+        <span>支援 YouTube · Bilibili · FFmpeg 調色盤最佳化</span>
+      </div>
+    </header>
+
+    <!-- URL Input Bar -->
+    <section class="card url-bar-card">
+      <form id="urlForm" class="url-form">
+        <div class="url-input-wrap">
+          <span class="url-icon" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+              <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+            </svg>
+          </span>
+          <input
+            type="text"
+            id="urlInput"
+            placeholder="貼上 YouTube 或 Bilibili 網址（支援 Shorts、youtu.be、BV 號、b23.tv 分享文字）..."
+            autocomplete="off"
+            spellcheck="false"
+          />
+          <button type="button" id="clearUrlBtn" class="icon-btn hidden" title="清除網址">✕</button>
+        </div>
+        <button type="submit" id="loadVideoBtn" class="btn btn-secondary">
+          <span class="btn-label">載入影片</span>
+        </button>
+      </form>
+      <div id="urlStatus" class="status-line hidden"></div>
+    </section>
+
+    <!-- Main 2-Column Studio -->
+    <main class="studio-grid">
+      <!-- Left: Video Preview & Interactive Timeline -->
+      <section class="card player-card">
+        <div class="card-header">
+          <div class="header-title-wrap">
+            <h2>影片預覽與時間軸定位</h2>
+            <span id="platformBadge" class="pill hidden">YouTube</span>
+          </div>
+          <span id="videoDurationBadge" class="pill hidden">總長度 00:00</span>
+        </div>
+
+        <div class="player-frame-wrap">
+          <div id="playerPlaceholder" class="player-placeholder">
+            <div class="placeholder-icon">▶</div>
+            <p class="placeholder-title">貼上 YouTube 或 Bilibili 網址即可預覽影片</p>
+            <p class="placeholder-desc">支援 YouTube 邊播邊抓點、Bilibili 內嵌預覽（含 BV 號 / b23.tv），或在右側直接輸入時間軸（如 <code>0:15 - 0:22</code>）</p>
+          </div>
+          <div id="ytPlayerMount" class="yt-player-mount hidden"></div>
+          <div id="biliPlayerMount" class="yt-player-mount hidden"></div>
+        </div>
+
+        <div id="videoMetaRow" class="video-meta-row hidden">
+          <div class="video-meta-text">
+            <h3 id="videoTitle">影片標題</h3>
+            <span id="videoUploader" class="muted"></span>
+          </div>
+        </div>
+
+        <!-- Live Player Sync Toolbar -->
+        <div class="player-toolbar">
+          <div id="ytSyncControls" class="yt-sync-controls">
+            <div class="now-time-chip">
+              <span class="label">目前位置</span>
+              <span id="currentTimeDisplay" class="mono">00:00.0</span>
+            </div>
+            <div class="toolbar-actions">
+              <button type="button" id="setStartFromPlayerBtn" class="btn btn-ghost btn-sm" disabled title="將目前播放時間設為開始點">
+                [ 設為起點
+              </button>
+              <button type="button" id="setEndFromPlayerBtn" class="btn btn-ghost btn-sm" disabled title="將目前播放時間設為結束點">
+                設為終點 ]
+              </button>
+              <button type="button" id="previewLoopBtn" class="btn btn-ghost btn-sm" disabled title="在播放器內循環預覽選取區間">
+                ↻ 預覽此片段
+              </button>
+            </div>
+          </div>
+          <div id="biliSyncHint" class="bili-sync-hint hidden">
+            <span>可在上方 Bilibili 播放器查看畫面時間，再透過下方拉桿或右側欄位輸入起訖時間軸</span>
+          </div>
+        </div>
+
+        <!-- Interactive Dual-Range Slider -->
+        <div class="timeline-scrubber">
+          <div class="timeline-header">
+            <span class="muted">互動區間拉桿</span>
+            <span id="clipLengthPill" class="pill pill-accent">片段長度 5.0 秒</span>
+          </div>
+          <div class="range-track-wrap">
+            <div class="range-track-bg"></div>
+            <div id="rangeHighlight" class="range-track-highlight"></div>
+            <input type="range" id="startRange" min="0" max="60" step="0.1" value="0" aria-label="開始時間拉桿" />
+            <input type="range" id="endRange" min="0" max="60" step="0.1" value="5" aria-label="結束時間拉桿" />
+          </div>
+          <div class="timeline-ticks">
+            <span id="tickStart" class="mono">00:00</span>
+            <span id="tickMid" class="mono">00:30</span>
+            <span id="tickEnd" class="mono">01:00</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Right: Timeline Inputs & GIF Controls -->
+      <section class="card controls-card">
+        <div class="card-header">
+          <h2>時間軸與 GIF 參數</h2>
+        </div>
+
+        <!-- Quick Range Paste -->
+        <div class="field-group">
+          <label for="quickRangeInput">快速貼上時間區間（選填）</label>
+          <div class="quick-range-row">
+            <input
+              type="text"
+              id="quickRangeInput"
+              class="mono"
+              placeholder="例如 0:15 - 0:22 或 1:05~1:12"
+            />
+            <button type="button" id="applyQuickRangeBtn" class="btn btn-ghost btn-sm">套用</button>
+          </div>
+        </div>
+
+        <!-- Exact Start & End Inputs -->
+        <div class="time-inputs-grid">
+          <div class="field-group">
+            <label for="startInput">開始時間</label>
+            <div class="time-stepper">
+              <button type="button" class="nudge-btn" data-target="start" data-delta="-0.5">-0.5s</button>
+              <input type="text" id="startInput" class="mono" value="00:00" placeholder="00:00" />
+              <button type="button" class="nudge-btn" data-target="start" data-delta="0.5">+0.5s</button>
+            </div>
+          </div>
+
+          <div class="field-group">
+            <label for="endInput">結束時間</label>
+            <div class="time-stepper">
+              <button type="button" class="nudge-btn" data-target="end" data-delta="-0.5">-0.5s</button>
+              <input type="text" id="endInput" class="mono" value="00:05" placeholder="00:05" />
+              <button type="button" class="nudge-btn" data-target="end" data-delta="0.5">+0.5s</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quick Duration Chips -->
+        <div class="duration-chips">
+          <span class="muted">快速長度：</span>
+          <button type="button" class="chip-btn" data-len="3">3 秒</button>
+          <button type="button" class="chip-btn" data-len="5">5 秒</button>
+          <button type="button" class="chip-btn" data-len="8">8 秒</button>
+          <button type="button" class="chip-btn" data-len="10">10 秒</button>
+          <button type="button" class="chip-btn" data-len="15">15 秒</button>
+        </div>
+
+        <hr class="divider" />
+
+        <!-- Output Settings -->
+        <div class="settings-grid">
+          <div class="field-group">
+            <label>解析度寬度</label>
+            <div class="segmented" data-setting="width">
+              <button type="button" data-value="320">320p</button>
+              <button type="button" data-value="480" class="active">480p</button>
+              <button type="button" data-value="640">640p</button>
+              <button type="button" data-value="720">720p</button>
+            </div>
+          </div>
+
+          <div class="field-group">
+            <label>幀率 (FPS)</label>
+            <div class="segmented" data-setting="fps">
+              <button type="button" data-value="8">8</button>
+              <button type="button" data-value="10">10</button>
+              <button type="button" data-value="12" class="active">12</button>
+              <button type="button" data-value="15">15</button>
+              <button type="button" data-value="20">20</button>
+            </div>
+          </div>
+
+          <div class="field-group">
+            <label>畫質與壓縮</label>
+            <div class="segmented" data-setting="quality">
+              <button type="button" data-value="high" class="active">高畫質</button>
+              <button type="button" data-value="medium">均衡</button>
+              <button type="button" data-value="compact">輕量小檔</button>
+            </div>
+          </div>
+
+          <div class="field-group">
+            <label>播放速度</label>
+            <div class="segmented" data-setting="speed">
+              <button type="button" data-value="0.5">0.5x</button>
+              <button type="button" data-value="0.75">0.75x</button>
+              <button type="button" data-value="1" class="active">1x</button>
+              <button type="button" data-value="1.5">1.5x</button>
+              <button type="button" data-value="2">2x</button>
+            </div>
+          </div>
+
+          <div class="field-group full-span">
+            <label>播放模式</label>
+            <div class="segmented" data-setting="mode">
+              <button type="button" data-value="normal" class="active">一般循環</button>
+              <button type="button" data-value="reverse">倒放</button>
+              <button type="button" data-value="boomerang">來回循環 (Boomerang)</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Action Button -->
+        <button type="button" id="generateBtn" class="btn btn-primary btn-lg">
+          <span class="btn-label">開始製作 GIF</span>
+        </button>
+
+        <!-- Progress Panel -->
+        <div id="progressPanel" class="progress-panel hidden">
+          <div class="progress-top">
+            <span id="progressMessage">準備中...</span>
+            <span id="progressPercent" class="mono">0%</span>
+          </div>
+          <div class="progress-bar-bg">
+            <div id="progressBarFill" class="progress-bar-fill" style="width: 0%"></div>
+          </div>
+        </div>
+
+        <div id="errorBanner" class="error-banner hidden"></div>
+      </section>
+    </main>
+
+    <!-- Generated Result Preview Card -->
+    <section id="resultSection" class="card result-card hidden">
+      <div class="card-header">
+        <h2>GIF 製作完成</h2>
+        <div class="result-actions">
+          <a id="openGifNewTab" href="#" target="_blank" class="btn btn-ghost btn-sm">新分頁檢視</a>
+          <a id="downloadGifBtn" href="#" download class="btn btn-primary btn-sm">⬇ 下載 GIF</a>
+        </div>
+      </div>
+
+      <div class="result-body">
+        <div class="gif-preview-stage">
+          <img id="resultGifImg" src="" alt="產出的 GIF 預覽" />
+        </div>
+        <div class="result-info">
+          <h3 id="resultTitle" class="result-title"></h3>
+          <div id="resultMetaBadges" class="meta-badges"></div>
+          <p class="result-filename muted mono" id="resultFilename"></p>
+          <a id="downloadGifBtnBig" href="#" download class="btn btn-primary">⬇ 立即下載 GIF 檔案</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- History Gallery -->
+    <section class="card history-card">
+      <div class="card-header">
+        <h2>最近產出的 GIF</h2>
+        <button type="button" id="refreshHistoryBtn" class="btn btn-ghost btn-sm">重新整理</button>
+      </div>
+      <div id="historyGrid" class="history-grid">
+        <p class="muted empty-history">尚未產出任何 GIF，貼上網址試試看吧！</p>
+      </div>
+    </section>
+  </div>
+
+  <script src="https://www.youtube.com/iframe_api"></script>
+  <script src="/static/app.js"></script>
+</body>
+</html>
