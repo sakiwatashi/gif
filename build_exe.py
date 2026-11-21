@@ -41,7 +41,7 @@ def main() -> None:
         "--onefile",
         "--console",
         "--name",
-        "YT-to-GIF-Studio",
+        "YT-Bili-GIF-Studio",
         "--icon",
         str(ico_path),
         "--add-data",
@@ -89,9 +89,9 @@ def main() -> None:
     if res.returncode != 0:
         raise SystemExit(f"PyInstaller 打包失敗 (exit code {res.returncode})")
 
-    exe_path = DIST_DIR / "YT-to-GIF-Studio.exe"
+    exe_path = DIST_DIR / "YT-Bili-GIF-Studio.exe"
     if not exe_path.exists():
-        raise SystemExit("打包完成但找不到 dist/YT-to-GIF-Studio.exe")
+        raise SystemExit("打包完成但找不到 dist/YT-Bili-GIF-Studio.exe")
 
     print("[4/4] 打包完成！")
     print(f"      EXE 位置：{exe_path}")

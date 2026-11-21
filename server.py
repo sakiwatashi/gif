@@ -311,7 +311,7 @@ def main() -> None:
     url = f"http://{args.host}:{port}"
 
     print("=" * 56)
-    print("  YT -> GIF Studio 已啟動！")
+    print("  YT / Bilibili -> GIF Studio 已啟動！")
     print(f"  開啟網址：{url}")
     print(f"  GIF 輸出位置：{OUTPUT_DIR}")
     print("  提示：使用期間請保持此視窗開啟，關閉視窗即可結束程式。")
